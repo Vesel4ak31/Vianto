@@ -109,7 +109,7 @@ SOFTWARE.
 
 # About Improving the Tool
 
-Yes, this project is quite small compared to my favorites, Brasher or Vulnestio. However, it doesn't position itself as a professional auditing tool—it’s just a simple utility for quick file analysis. You likely won't need to run the tool more than once during a scan, as a single pass should suffice.
+Yes, this project is quite small compared to my favorites, Brasher or Vulnestio. However, it doesn't position itself as a professional auditing tool it’s just a simple utility for quick file analysis. You likely won't need to run the tool more than once during a scan, as a single pass should suffice.
 For future development, I’d like to add integration with Shodan, Censys, 2IP.io, and WHOIS. This would allow the analysis process to immediately retrieve the servers' approximate locations, owners, ASNs, and potentially open ports. While this leans more toward OSINT, it’s not the primary focus.
 Essentially, the tool simply searches for content using regular expressions; this makes the file analysis process quite straightforward, as it just iterates through each line looking for information. Another cool option would be adding checks for leaked emails and phone numbers via the HaveIBeenPwned API. Again, this leans toward OSINT, but it would enable checking content for data breaches. I could also add the ability to decode Base64 and Base32 strings on the fly. In any case, there are plenty of possibilities for the tool's future evolution.
 
