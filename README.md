@@ -81,4 +81,35 @@ This tool is intended solely for the legal auditing of files for malicious conte
 
 This tool is distributed under the MIT License. For your convenience, I've included the license here:
 
+```
+MIT License
+
+Copyright (c) 2026 Vesel4ak31
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+<img width="1095" height="643" alt="изображение" src="https://github.com/user-attachments/assets/2ed41909-f88d-4b32-82f4-d3663eede357" />
+
+# About Improving the Tool
+
+Yes, this project is quite small compared to my favorites, Brasher or Vulnestio. However, it doesn't position itself as a professional auditing tool—it’s just a simple utility for quick file analysis. You likely won't need to run the tool more than once during a scan, as a single pass should suffice.
+For future development, I’d like to add integration with Shodan, Censys, 2IP.io, and WHOIS. This would allow the analysis process to immediately retrieve the servers' approximate locations, owners, ASNs, and potentially open ports. While this leans more toward OSINT, it’s not the primary focus.
+Essentially, the tool simply searches for content using regular expressions; this makes the file analysis process quite straightforward, as it just iterates through each line looking for information. Another cool option would be adding checks for leaked emails and phone numbers via the HaveIBeenPwned API. Again, this leans toward OSINT, but it would enable checking content for data breaches. I could also add the ability to decode Base64 and Base32 strings on the fly. In any case, there are plenty of possibilities for the tool's future evolution.
 
