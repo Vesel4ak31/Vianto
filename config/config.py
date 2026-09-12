@@ -1,0 +1,28 @@
+config_matches = {
+    "ipv4 address": r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}",
+    "ipv6 address": r"[0-9a-fA-F]{1,4}(:[0-9a-fA-F]{1,4}){7}",
+    "mac address": r"^(?:[0-9a-fA-F]{2}[:-]){5}[0-9a-fA-F]{2}$",
+    "email address": r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}",
+    "domain": r"(?<![a-zA-Z0-9_\.])(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+(?:com|net|org|ru|io|gov|edu|biz|info|me)\b",
+    "url": r"\bhttps?://(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,6}(?:\/[^\s]*)?",
+    "file": r"\b(?<!\bself\.)(?<!\bthis\.)[a-zA-Z0-9_\-\/\\\.]+\.(?:exe|dll|sys|bat|cmd|vbs|ps1|sh|py|pl|rb|go|elf|bin|apk|msi|cab|zip|rar|7z|tar|gz|txt|doc|docx|xls|xlsx|pdf|cfg|ini|conf)\b",
+    "phone number": r"(?:\+\d{1,999})\s?\(?\d{3}\)?\s?\d{3}[-.\s]?\d{2}[-.\s]?\d{2}",
+    "md5 hash": r"\b[0-9a-fA-F]{32}\b",
+    "sha256 hash": r"\b[0-9a-fA-F]{64}\b",
+    "sha512 hash": r"\b[0-9a-fA-F]{128}\b",
+    "base64 string": r"\b(?=[a-zA-Z0-9+]{20,}\b)[a-zA-Z0-9+]+={0,2}\b",
+    "base32 string": r"\b(?=[A-Z2-7]{20,}\b)[A-Z2-7]+={0,6}\b",
+    "private key header": r"-----BEGIN\s+(?:RSA|OPENSSH|DSA|EC|PGP)?\s*PRIVATE\s+KEY\s*-----",
+    "encrypted private key header": r"-----BEGIN\s+ENCRYPTED\s+PRIVATE\s+KEY\s*-----",
+    "ssh authorized key": r"ssh-(?:rsa|dss|ed25519)\s+[a-zA-Z0-9+/=]{32,}",
+    "aws access key": r"\bAKIA[0-9A-Z]{16}\b",
+    "aws secret key": r"\b[0-9a-zA-Z+/]{40}\b",
+    "telegram bot token": r"\b\d{8,11}:[a-zA-Z0-9_-]{35}\b",
+    "github token": r"\bgh[psour]_[a-zA-Z0-9]{36,255}\b",
+    "slack token": r"\bxox[bprs]-[0-9a-zA-Z]{10,48}\b",
+    "google api key": r"\bAIza[0-9a-zA-Z_-]{35}\b",
+    "jwt token": r"\beyJ[a-zA-Z0-9_-]{10,}\.eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}",
+    "hardcoded password": r"(?i)\b(?:pass|passwd|password|secret|token|api_key|apikey)\b\s*[:=]\s*[\"']([^\"']{4,})[\"']",
+    "db connection string": r"\b(?:mongodb(?:\+srv)?|postgres|postgresql|mysql|redis)://[a-zA-Z0-9._-]+:[^@]+@[a-zA-Z0-9.-]+(?::\d+)?\b"
+}
+
