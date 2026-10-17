@@ -7,8 +7,11 @@ from random import SystemRandom
 
 from config.config import config_matches
 from config.title import title
+from config.promt import promt
+from config.CONFIG_DATA import CONFIG_DATA
 
 import vt
+from google import genai
 import sys
 import os
 from pathlib import Path
@@ -22,15 +25,20 @@ class Vianto:
     def __init__(self,
                  path : str,
                  virus_total="",
+                 gemini = "",
 
                 skip_file_options_check = False,
                 skip_malware_check= False,
                 skip_file_check= False,
                 skip_file_info_check= False,
+                skip_gemini_analys_check = False,
+
                 timeout=0.0,
                 output_file=False,
                 random_timeout="",
-                jitter=0.0):
+                jitter=0.0,
+                gemini_model = "gemini-2.5-flash",
+                no_delete_gemini_files = True):
 
         self.path = path
         self.folder = None
@@ -46,6 +54,9 @@ class Vianto:
         self.client = None
         self.timeout = timeout
         self.output_file = output_file
+
+        self.all_data = set()
+        self.other_data = set()
         
         self.sha256_hash = sha256()
         self.sha512_hash = sha512()
@@ -63,12 +74,22 @@ class Vianto:
         self.url_info = None
 
         self.hash_data = None
+
         self.virus_total_api_key = virus_total
+        self.gemini_api_key = gemini
+
+        self.gemini_client = None
+        self.gemini_model = gemini_model
+        self.upload_file = None
+        self.gemini_response = None
+        self.no_delete_gemini_files = no_delete_gemini_files
 
         self.skip_file_options_check = skip_file_options_check
         self.skip_malware_check = skip_malware_check
         self.skip_file_check = skip_file_check
         self.skip_file_info_check = skip_file_info_check
+        self.skip_gemini_analys_check = skip_gemini_analys_check
+
         self.low , self.high = None,None
 
         self.random_timeout = random_timeout
@@ -108,7 +129,7 @@ class Vianto:
         
         except ValueError as e:
 
-            self.safe_print(self.render_text("!",Back.RED,f"invalid range format: {e} . expected: min-max (e.g., 0.5-2.5)"))
+            print(self.render_text("!",Back.RED,f"invalid range format: {e} . expected: min-max (e.g., 0.5-2.5)"))
             self.logging(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}] [!] invalid range format: {e} . expected: min-max (e.g., 0.5-2.5)")
             sys.exit(1)
 
@@ -252,7 +273,7 @@ class Vianto:
                 self.url_info = self.client.scan_url(url,wait_for_completion=True)
                 print(f"{self.render_text("#",Style.BRIGHT + Fore.BLUE,f"check url: {url}")}")
                 self.logging(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}] [#] check url: {url}")
-                self.render_info([f"{self.url_info.stats["malicious"]} antivirus programs flagged this url as malicious",f"{self.url_info.stats["suspicious"]} antivirus programs did not assign an intermediate status to this url",f"{self.url_info.stats["undetected"]} antivirus programs found nothing suspicious",f"{self.url_info.stats["harmless"]} antivirus programs mark this url as 'completely safe'",f"{self.url_info.stats["timeout"]} antivirus programs returned a timeout error",f"{self.url_info.stats["confirmed_timeout"]} 9 antivirus programs returned a 'confirmed timeout' error",f"{self.url_info.stats["failure"]} antivirus engines returned an error during scanning",f"{self.url_info.stats["type_unsupported"]} antivirus programs failed to scan the object because they do not support this file type"])
+                self.render_info([f"{self.url_info.stats["malicious"]} antivirus programs flagged this url as malicious",f"{self.url_info.stats["suspicious"]} antivirus programs did not assign an intermediate status to this url",f"{self.url_info.stats["undetected"]} antivirus programs found nothing suspicious",f"{self.url_info.stats["harmless"]} antivirus programs mark this url as 'completely safe'",f"{self.url_info.stats["timeout"]} antivirus programs returned a timeout error",f"{self.url_info.stats["confirmed_timeout"]} antivirus programs returned a 'confirmed timeout' error",f"{self.url_info.stats["failure"]} antivirus engines returned an error during scanning",f"{self.url_info.stats["type_unsupported"]} antivirus programs failed to scan the object because they do not support this file type"])
                 self.client.close()
                 print()
                 return True
@@ -271,24 +292,30 @@ class Vianto:
 
             match(param):
 
+
                 case "ipv4 address":
+
+                    self.all_data.add(value)
                     self.ips.add(value)
                     self.logging(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}] [#] add ipv4: {value}")
 
                 case "ipv6 address":
+                    self.all_data.add(value)
                     self.ips.add(value)
                     self.logging(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}] [#] add ipv6: {value}")
 
                 case "domain":
+                    self.all_data.add(value)
                     self.domains.add(value)
                     self.logging(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}] [#] add domain {value}")
 
                 case "url":
+                    self.all_data.add(value)
                     self.urls.add(value)
                     self.logging(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}] [#] add url: {value}")
 
                 case _:
-                    pass
+                    self.other_data.add(value)
 
             return True
         
@@ -315,7 +342,7 @@ class Vianto:
             print()
             print(f"{self.render_text("#",Style.BRIGHT + Fore.BLUE,f"file malware check")}")
             self.logging(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}] [#] file malware check")
-            self.render_info([f"sha256 hash: {self.sha256_info.sha256}",f"file type tag: {self.sha256_info.type_tag}",f"file size: {self.sha256_info.size} bytes",f"{self.sha256_info.last_analysis_stats["malicious"]} antivirus programs flagged this file as a competitor",f"{self.sha256_info.last_analysis_stats["type-unsupported"]} antivirus programs failed to scan the object because they do not support this file type",f"only {self.sha256_info.last_analysis_stats["undetected"]} antivirus programs found nothing suspicious (the object remained undetected by them)",f"{self.sha256_info.last_analysis_stats["failure"]} antivirus engines returned an error during scanning",f"{self.sha256_info.last_analysis_stats["harmless"]} antivirus mark this file as 'guaranteed safe'",f"{self.sha256_info.last_analysis_stats["suspicious"]} antivirus programs did not assign an intermediate status to this file",f"{self.sha256_info.last_analysis_stats["timeout"]} antivirus programs returned a timeout error"])
+            self.render_info([f"sha256 hash: {self.sha256_info.sha256}",f"file type tag: {self.sha256_info.type_tag}",f"file size: {self.sha256_info.size} bytes",f"{self.sha256_info.last_analysis_stats["malicious"]} antivirus programs flagged this file as a malicious",f"{self.sha256_info.last_analysis_stats["type-unsupported"]} antivirus programs failed to scan the object because they do not support this file type",f"only {self.sha256_info.last_analysis_stats["undetected"]} antivirus programs found nothing suspicious (the object remained undetected by them)",f"{self.sha256_info.last_analysis_stats["failure"]} antivirus engines returned an error during scanning",f"{self.sha256_info.last_analysis_stats["harmless"]} antivirus mark this file as 'guaranteed safe'",f"{self.sha256_info.last_analysis_stats["suspicious"]} antivirus programs did not assign an intermediate status to this file",f"{self.sha256_info.last_analysis_stats["timeout"]} antivirus programs returned a timeout error"])
             print()
             self.client.close()
             return True
@@ -404,6 +431,33 @@ class Vianto:
             print(self.render_text("!",Style.BRIGHT + Fore.RED,f"file options check error: {Style.BRIGHT + Fore.WHITE + str(e) + Style.RESET_ALL}"))
             self.logging(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}] [!] file options check error: {e}")
             return False
+
+    def gemini_analyse(self) -> None:
+
+        try:
+
+            print(f"{self.render_text("#",Style.BRIGHT + Fore.BLUE,f"gemini file analyse...")}")
+            self.logging(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}] [#] gemini file analyse...")
+            self.gemini_client = genai.Client(api_key=self.gemini_api_key)
+            self.upload_file = self.gemini_client.files.upload(file=self.path)
+            self.gemini_response = self.gemini_client.models.generate_content(model=self.gemini_model,
+                                                                       contents=[self.upload_file,promt])
+
+            print(self.gemini_response.text)
+
+            if self.no_delete_gemini_files:
+                self.gemini_client.files.delete(name=self.upload_file.name)
+                self.logging(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}] [#] try to delete info")
+
+            
+            return True
+            
+        except Exception as e:
+                    
+            print(self.render_text("!",Style.BRIGHT + Fore.RED,f"gemini file analyse error: {Style.BRIGHT + Fore.WHITE + str(e) + Style.RESET_ALL}"))
+            self.logging(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}] [!] gemini file analyse error: {e}")
+            return False
+
             
     
     def analyse(self) -> None:
@@ -433,6 +487,10 @@ class Vianto:
                     self.clear_hashes()
                     self.malware_check(self.hash_file(self.sha256_hash))
 
+                else:
+                    print(f"{self.render_text("#",Style.BRIGHT + Fore.RED,f"skip virus total check because api key is empty , please for the next check write virusl total api key using -vt flag")}")
+                    self.logging(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}] [#] skip virus total check because api key is empty , please for the next check write virusl total api key using -vt flag")
+
 
             if not self.skip_file_check:
                 self.clear_hashes()
@@ -444,6 +502,18 @@ class Vianto:
                  if self.virus_total_api_key != "":
                     self.clear_hashes()
                     self.file_info_check()
+
+            if not self.skip_gemini_analys_check:
+
+                if self.gemini_api_key != "":
+
+                    self.clear_hashes()
+                    self.gemini_analyse()
+
+                else:
+
+                    print(f"{self.render_text("#",Style.BRIGHT + Fore.RED,f"skip gemni check because api key is empty , please for the next check write gemini api key using -ge flag")}")
+                    self.logging(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')}] [#] skip gemni check because api key is empty , please for the next check write gemini api key using -ge flag")
 
                     
 
@@ -464,6 +534,11 @@ class Vianto:
 
             if self.client:
                 self.client.close()
+                self.client = None
+
+            if self.gemini_client:
+                self.gemini_client.close()
+                self.gemini_client = None
 
             if self.total_matches == False:
                 print(self.render_text("#",Style.BRIGHT + Fore.RED,f"vianto didn't find any matches in file"))
@@ -482,6 +557,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser("Vianto (Virus Analyzer Tool) is a fully open-source tool that searches for various data within files using Python regular expressions.")
     parser.add_argument("file_path",type=str,help="File path to check")
     parser.add_argument("-vt","--virus-total",type=str,default="",help="VirusTotal API key for malware check")
+    parser.add_argument("-ge","--gemini",type=str,default="",help="Gemini API key for malware analys")
 
     parser.add_argument("-o", "--output-file",nargs="?", const="auto",help="This parameter is responsible for logging all program actions.") 
     parser.add_argument("-t","--timeout",type=float,default=0.0,help="Custom timeout")
@@ -490,12 +566,18 @@ if __name__ == "__main__":
     parser.add_argument("-smc","--skip-malware-check",action="store_true",default=False,help="Skip malware check")
     parser.add_argument("-sfc","--skip-file-check",action="store_true",default=False,help="Skip file check")
     parser.add_argument("-sfic","--skip-file-info-check",action="store_true",default=False,help="Skip file info check")
+    parser.add_argument("-sgac","--skip-gemini-analys-check",action="store_true",default=False,help="Skip gemini analys")
 
     parser.add_argument("-rt", "--random-timeout", type=str,default=None,help="Random timeout range.for example '--random-timeout '2-5''") 
     parser.add_argument("-j","--jitter", type=float, default=0.0,help="Flag for adding a timeout to the current one. A negative timeout can be specified. Useful in combination with the --random-timeout flag.")
 
+
+    parser.add_argument("-gm","--gemini-model",type=str,default="gemini-2.5-flash",help="Gemini model name.default value is gemini-2.5-flash")
+    parser.add_argument("-ndgf","--no-delete-gemini-files",action="store_true",default=True,help="If flag is true , vianto try to sebd request for delete imported files from google servises.Default value is True , so  if you want to delete information from google servises just dont use this flag ")
+
     args = parser.parse_args()
     api_key = args.virus_total
+    gemini_key = args.gemini
 
     log_filename = None
         
@@ -518,18 +600,38 @@ if __name__ == "__main__":
         path = input("[" + Style.BRIGHT + Fore.BLUE + f"+" + Style.RESET_ALL + "] " + f"you did not specify the path to the desired test file , enter the file path: " + Style.RESET_ALL)
         
     if api_key == "":
-         api_key= input("[" + Style.BRIGHT + Fore.BLUE + f"+" + Style.RESET_ALL + "] " + f"before testing begins, provide your VirusTotal API key for additional scanning. You can also specify it using the `--virus-total` flag. If you do not wish to provide an API key, simply press Enter, and the file scanning step will be skipped: " + Style.RESET_ALL)
-         
 
+        if CONFIG_DATA["VirusTotal"] == "":
+            api_key= input("[" + Style.BRIGHT + Fore.BLUE + f"+" + Style.RESET_ALL + "] " + f"before testing begins, provide your VirusTotal API key for additional scanning. You can also specify it using the `--virus-total` flag. If you do not wish to provide an API key, simply press Enter, and the file scanning step will be skipped: " + Style.RESET_ALL)
+
+        else:
+
+            api_key = CONFIG_DATA["VirusTotal"]
+        
+    if gemini_key == "":
+
+        if CONFIG_DATA["Gemini"] == "":
+            gemini_key = input("[" + Style.BRIGHT + Fore.BLUE + f"+" + Style.RESET_ALL + "] " + f"before testing begins, provide your Gemini API key for additional scanning. You can also specify it using the `--gemini` flag. If you do not wish to provide an API key, simply press Enter, and the file scanning step will be skipped: " + Style.RESET_ALL)
+                 
+        else:
+
+            gemini_key = CONFIG_DATA["Gemini"]
+            
                      
-    vianto = Vianto(path,virus_total=api_key,
+    vianto = Vianto(path,
+                    virus_total=api_key,
+                    gemini = gemini_key,
 
                     skip_file_options_check = args.skip_file_options_check,
                     skip_malware_check=args.skip_malware_check,
                     skip_file_check=args.skip_file_check,
                     skip_file_info_check=args.skip_file_info_check,
+                    skip_gemini_analys_check=args.skip_gemini_analys_check,
+
                     timeout=args.timeout,
                     output_file=log_filename,
                     random_timeout=args.random_timeout,
-                    jitter=args.jitter)
+                    jitter=args.jitter,
+                    gemini_model = args.gemini_model,
+                    no_delete_gemini_files=args.no_delete_gemini_files)
     vianto.analyse()
