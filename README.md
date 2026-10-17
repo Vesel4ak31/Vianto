@@ -19,17 +19,19 @@ python3 vianto.py -h
 
 | Flag | Full name / Type | Description |
 | :--- | :--- | :--- |
-| **-f** | `--file-path` | File path to check |
 | **-vt** | `--virus-total` | VirusTotal API key for malware check |
-| **-l** | `--log` | This parameter is responsible for logging all program actions |
+| **-ge** | `--gemini` | Gemini API key for malware analys |
+| **-o** | `--output-file` | This parameter is responsible for logging all program actions |
 | **-t** | `--timeout` | Custom timeout |
 | **-sfoc** | `--skip-file-options-check` | Skip file options check |
 | **-smc** | `--skip-malware-check` | Skip malware check |
 | **-sfc** | `--skip-file-check` | Skip file check |
 | **-sfic** | `--skip-file-info-check` | Skip file info check |
+| **-sgac** | `--skip-gemini-analys-check` | Skip gemini analys |
 | **-rt** | `--random-timeout` | Random timeout range, for example 'random timeout \'2 5\'' |
 | **-j** | `--jitter` | Flag for adding a timeout to the current one. A negative timeout can be specified. Useful in combination with the --random-timeout flag. |
-
+| **-gm** | `--gemini-model` | Gemini model name.default value is gemini-2.5-flash |
+| **-ndgf** | `--no-delete-gemini-files` | If flag is true , vianto try to sebd request for delete imported files from google servises.Default value is True , so  if you want to delete information from google servises just dont use this flag  |
 <img width="1691" height="323" alt="изображение" src="https://github.com/user-attachments/assets/5e5b2e78-1e22-46da-be4e-f23e46d0fbc6" />
 
 # Use case and information about analysis
@@ -60,6 +62,22 @@ The final verification stage involves checking IPv4 and IPv6 addresses, domains,
 # About logging
 
 Using the -o flag you can log all program actions. By “logging everything,” I mean literally everything. Each parameter will be written to the file you specify: from clearing the cache to setting a random timeout. This is necessary for content analysis. The start and end of the scan will be separated by 60 “-” signs and the words “START” or “END” respectively. The logs will indicate the exact date with milliseconds. Also, after the tool completes, the total execution time will be displayed.
+
+# Analysis via Gemini
+
+<img width="2006" height="255" alt="изображение" src="https://github.com/user-attachments/assets/a14ed52a-44c0-4ac9-a427-0d7f6c3a90e6" />
+
+Yes, this feature has been added in the new version. You can now provide an API key to interact with Gemini; it will process the prompt stored in `./config/prompt.py` (which you are free to modify as you wish). You can also bypass the check by using the `--skip-gemini-analysis-check` flag. Please note that this analysis may be blocked by Google due to certain restrictions. During the file analysis process, no data other than the file itself is sent to Gemini. Afterward, Vianto will attempt to send a request to have the data deleted from Google’s servers; you can opt out of this behavior by using the `--no-delete-gemini-files` flag. AI-driven analysis is useful as it can uncover insights that Vianto might otherwise miss. Unfortunately, I am unable to test this feature myself due to restrictions imposed by Google.
+
+
+# Saving API Keys
+
+<img width="1963" height="332" alt="изображение" src="https://github.com/user-attachments/assets/f56acbcf-148e-4276-a38a-8af9d2f790bb" />
+
+In this new version, you can store your VirusTotal and Gemini API keys in the `./config/CONFIG_DATA.py` file. Simply enter your key in the designated field, and you won’t need to provide it again for future analyses. Future updates are planned to include content analysis via Shodan, 2IP, and Censys, so you will also be able to store your API keys for Shodan and Censys in this same file.
+
+<img width="2559" height="1325" alt="изображение" src="https://github.com/user-attachments/assets/137c2067-80bd-4bc9-8fd8-29e480342b5d" />
+
 
 # Useful Options
 
